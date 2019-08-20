@@ -1,0 +1,25 @@
+{
+  "name": "fancy-garbanzo",
+  "version": "1.0.0",
+  "description": "The fanciest of all garbanzos",
+  "main": "scrape.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jeremiahxy/fancy-garbanzo.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jeremiahxy/fancy-garbanzo/issues"
+  },
+  "homepage": "https://github.com/jeremiahxy/fancy-garbanzo#readme",
+  "dependencies": {
+    "axios": "^0.19.0",
+    "cheerio": "^1.0.0-rc.3",
+    "mongodb": "^3.3.0",
+    "puppeteer": "^1.19.0"
+  }
+}
