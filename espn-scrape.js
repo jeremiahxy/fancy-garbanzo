@@ -21,7 +21,7 @@ const scrape = async () => {
     // need to loop through each page
     // currently this URL has 50 players on each page and 21 pages
     // create variable to hold the number of pages
-    var lastPageNumber = 21;
+    var lastPageNumber = 12;
 
     // you are on page one when the script starts
     // create a loop that starts at one and ends at the last page
@@ -62,19 +62,25 @@ const extractedEvaluateCall = async (page) => {
         for (var element of elements) {
 
             // grab the name, position, team, and espn_rank
-            let name = element.querySelector('.link.pointer').textContent;            
+            let full_name = element.querySelector('.link.pointer').textContent;            
             let position = element.querySelector('.playerinfo__playerpos').textContent;
             let team = element.querySelector('.pro-team-name').textContent;            
             let espn_rank = element.querySelector('.playerInfo__rank.Table2__td').childNodes[0].textContent;
+            let headshot_url = element.querySelector('.player-headshot.projection-player-headshot').childNodes[0].src;
             
             // clean and normalize the data
-            name = name.trim();
+            full_name = full_name.trim();
             position = position.trim().toLowerCase();
             team = team.trim().toLowerCase();
-            espn_rank = espn_rank.trim();
+            espn_rank = parseInt(espn_rank.trim());
 
-            // create a unique string that could be used as a key later
-            let clean_name = name.replace(/\.?([A-Z]+)/g, function (x,y){return "_" + y.toLowerCase()}).replace(/^_/, "").replace(" ", "");
+            // create name string to be used for matching existing player
+            let nameArray = full_name.split(" ");
+            let firstInitial = nameArray[0][0];
+            nameArray[0] = firstInitial;
+            let name = nameArray.join(" ");
+            let clean_name = name.replace(/\.?([A-Z]+)/g, function (x,y){return "_" + y.toLowerCase()}).replace(/^_/, "").replace(/ /g, "");
+            let full_clean_name = full_name.replace(/\.?([A-Z]+)/g, function (x,y){return "_" + y.toLowerCase()}).replace(/^_/, "").replace(/ /g, "");
 
             // create objects to hold the stats
             let last_year = {};
@@ -98,9 +104,91 @@ const extractedEvaluateCall = async (page) => {
                     // if the data-idx value is 0 it's the first row, so it's 'last_year' else if it's 1 then it's the projections
                     // a table cell from a different table shows up in this loop, so we add '&& label !== "Rank"' to omit it
                     if(data_index === "0" && label !== "Rank"){
-                        last_year[label] = value;
+                        switch (label) {
+                            case "Each Pass Completed & Each Pass Attempted":
+                                let valueArray = value.split("/");
+                                last_year["Pass_Comp"] = parseFloat(valueArray[0]);
+                                break;
+                            case "Fantasy Points":
+                                last_year["Fantasy_Points"] = parseFloat(value);
+                                break;
+                            case "Passing Yards":
+                                last_year["Pass_Yds"] = parseFloat(value);
+                                break;
+                            case "TD Pass":
+                                last_year["Pass_TD"] = parseFloat(value);
+                                break;
+                            case "Interceptions Thrown":
+                                last_year["Pass_Int"] = parseFloat(value);
+                                break;
+                            case "Rushing Attempts":
+                                last_year["Rush_Att"] = parseFloat(value);
+                                break;
+                            case "Rushing Yards":
+                                last_year["Rush_Yds"] = parseFloat(value);
+                                break;
+                            case "TD Rush":
+                                last_year["Rush_TD"] = parseFloat(value);
+                                break;
+                            case "Receiving Target":
+                                last_year["Rec_Tgt"] = parseFloat(value);
+                                break;
+                            case "Each reception":
+                                last_year["Rec_Rec"] = parseFloat(value);
+                                break;
+                            case "Receiving Yards":
+                                last_year["Rec_Yds"] = parseFloat(value);
+                                break;
+                            case "TD Reception":
+                                last_year["Rec_TD"] = parseFloat(value);
+                                break;
+                            default:
+                                last_year[label] = value;
+                                break;
+                        }
                     } else if(data_index === "1") {
-                        espn_projections[label] = value;
+                        switch (label) {
+                            case "Each Pass Completed & Each Pass Attempted":
+                                let valueArray = value.split("/");
+                                espn_projections["Pass_Comp"] = parseFloat(valueArray[0]);
+                                break;
+                            case "Fantasy Points":
+                                espn_projections["Fantasy_Points"] = parseFloat(value);
+                                break;
+                            case "Passing Yards":
+                                espn_projections["Pass_Yds"] = parseFloat(value);
+                                break;
+                            case "TD Pass":
+                                espn_projections["Pass_TD"] = parseFloat(value);
+                                break;
+                            case "Interceptions Thrown":
+                                espn_projections["Pass_Int"] = parseFloat(value);
+                                break;
+                            case "Rushing Attempts":
+                                espn_projections["Rush_Att"] = parseFloat(value);
+                                break;
+                            case "Rushing Yards":
+                                espn_projections["Rush_Yds"] = parseFloat(value);
+                                break;
+                            case "TD Rush":
+                                espn_projections["Rush_TD"] = parseFloat(value);
+                                break;
+                            case "Receiving Target":
+                                espn_projections["Rec_Tgt"] = parseFloat(value);
+                                break;
+                            case "Each reception":
+                                espn_projections["Rec_Rec"] = parseFloat(value);
+                                break;
+                            case "Receiving Yards":
+                                espn_projections["Rec_Yds"] = parseFloat(value);
+                                break;
+                            case "TD Reception":
+                                espn_projections["Rec_TD"] = parseFloat(value);
+                                break;
+                            default:
+                                espn_projections[label] = value;
+                                break;
+                        }
                     }
                 }
             }
@@ -108,22 +196,78 @@ const extractedEvaluateCall = async (page) => {
             // push and object to the return data
             // the object is in the format that it will go into the 
             // this is using ES2015 shorthand property names: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Object_initializer#Property_definitions
-            data.push({ clean_name, name, position, team, espn_rank, last_year, espn_projections });
+            if(espn_projections.Fantasy_Points > 0) {
+                data.push([{ 
+                    clean_name,
+                    team,
+                    position,
+                },{
+                    clean_name,
+                    team,
+                    position,
+                    full_name,
+                    headshot_url,
+                    espn_rank,
+                    last_year,
+                    espn_projections
+                }]);
+            }
         }
 
         return data;
     });
 }
 
+function updateDatabase(players, array) {
+    return new Promise((resolve, reject) => {
+        
+        function syncronousAddToDatabase(i) {
+            let options = { upsert: true }
+            if (i >= array.length) {
+                resolve();
+            } else {
+                players.updateOne(array[i][0], { $set: array[i][1] }, options)
+                .then(function () { 
+                    syncronousAddToDatabase(i + 1); 
+                })
+                .catch(function (error) { 
+                    console.log(error); 
+                    syncronousAddToDatabase(i + 1);
+                });
+            }
+        }
+
+        syncronousAddToDatabase(0);
+    })
+}
+
 // initiate the scrape
 scrape().then(results => {
+    console.log(results[0][0]);
+    console.log(results[0][1].espn_projections);
     // connect to the database
     client.connect(err => {
         // create a reference to the collection
-        const collection = client.db("fancy-garbanzo").collection("players");
-        // insert all of the results
-        collection.insertMany(results);
-        // close the connection to the client
-        client.close();
+        const players = client.db("fancy-garbanzo").collection("players");
+
+        // update the database with all of the results
+        updateDatabase(players, results)
+        .then(() => {
+            console.log("everything updated");
+            // close the connection to the db
+            client.close();
+            // exit the node script
+            process.exit(1);
+        })
+        .catch(err => {
+            console.log(err);
+            // close the connection to the db
+            client.close();
+            // exit the node script
+            process.exit(1);
+        });
+
     });
-});
+    
+})
+.catch(err => console.log(err));

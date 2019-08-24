@@ -60,5 +60,8 @@ typings/
 # next.js build output
 .next
 
+# mac file
+.DS_Store
+
 # keys
 keys/
